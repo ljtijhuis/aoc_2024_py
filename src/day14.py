@@ -168,6 +168,9 @@ print(safety_factor)
 # generate_csv(robots, 11, 7, 5000)
 # generate_csv(robots, 101, 103, 10000)
 
+# Data crunching / CSV dump here: 
+# https://docs.google.com/spreadsheets/d/1aWnrYg5zElkGwowCjALlRV7lTQM7JAvf0hMnqWwsMdA/edit?gid=1039272152#gid=1039272152
+
 # draw some special values
 values = [
     7569

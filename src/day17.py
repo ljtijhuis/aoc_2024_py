@@ -109,7 +109,6 @@ text = read_file('day17.txt')
 program, register_values = parse_input(text)
 
 output = execute_program(program, register_values)
-
 print(",".join(str(i) for i in output))
 
 # # Part 2
@@ -133,11 +132,26 @@ print(",".join(str(i) for i in output))
 
 # B = A % 8 (keeping only lowest 3 bits from A)
 
+# Options:
+# B = 0..7
+
 # # 1
 # # 5
 # # The bxl instruction (opcode 1) calculates the bitwise XOR of register B and the instruction's literal operand, then stores the result in register B.
 
-# B = B ^ 101
+# B = B XOR 101
+# B = 0 -> B = 5
+# B = 1 -> B = 4
+# B = 2 -> B = 7
+# B = 3 -> B = 6
+# B = 4 -> B = 1
+# B = 5 -> B = 0
+# B = 6 -> B = 3
+# B = 7 -> B = 2
+
+# 00000101 = ... + 1 * 2 ^2 + 0 * 2 ^ 1 + 1 * 2 ^ 0 = 5
+# 10000100
+# 10000001
 
 # # 7
 # # 5
@@ -145,23 +159,51 @@ print(",".join(str(i) for i in output))
 
 # C = A / 2 ^ B (truncated to an int)
 
+# B = 0 -> B = 5 -> C = A /  32 = A / 00100000
+# B = 1 -> B = 4 -> C = A /  16 = A / 00010000
+# B = 2 -> B = 7 -> C = A / 128 = A / 10000000
+# B = 3 -> B = 6 -> C = A /  64 = A / 01000000
+# B = 4 -> B = 1 -> C = A /   2 = A / 00000010
+# B = 5 -> B = 0 -> C = A /   1 = A / 00000001
+# B = 6 -> B = 3 -> C = A /   8 = A / 00001000
+# B = 7 -> B = 2 -> C = A /   4 = A / 00000100
+
+# C = A >> B
+
 # # 1
 # # 6
 # # The bxl instruction (opcode 1) calculates the bitwise XOR of register B and the instruction's literal operand, then stores the result in register B.
 
-# B = B ^ 110
+# B = B XOR 110
+# B = 0 -> B = 5 -> B = 3
+# B = 1 -> B = 4 -> B = 2
+# B = 2 -> B = 7 -> B = 1
+# B = 3 -> B = 6 -> B = 0
+# B = 4 -> B = 1 -> B = 7
+# B = 5 -> B = 0 -> B = 6
+# B = 6 -> B = 3 -> B = 5
+# B = 7 -> B = 2 -> B = 4
 
 # # 0
 # # 3
 # # The adv instruction (opcode 0) performs division. The numerator is the value in the A register. The denominator is found by raising 2 to the power of the instruction's combo operand. (So, an operand of 2 would divide A by 4 (2^2); an operand of 5 would divide A by 2^B.) The result of the division operation is truncated to an integer and then written to the A register.
 
 # A = A / pow(2, 3) = A / 8 (truncated to an int)
+# This is the same as A >> 3 !! so we are just going through all 3 bit values of A
 
 # # 4
 # # 1
 # # The bxc instruction (opcode 4) calculates the bitwise XOR of register B and register C, then stores the result in register B. (For legacy reasons, this instruction reads an operand but ignores it.)
 
-# B = B ^ C
+# B = B XOR C
+# B = 0 -> B = 5 -> B = 3
+# B = 1 -> B = 4 -> B = 2
+# B = 2 -> B = 7 -> B = 1
+# B = 3 -> B = 6 -> B = 0
+# B = 4 -> B = 1 -> B = 7
+# B = 5 -> B = 0 -> B = 6
+# B = 6 -> B = 3 -> B = 5
+# B = 7 -> B = 2 -> B = 4
 
 # # 5
 # # 5
@@ -180,6 +222,27 @@ print(",".join(str(i) for i in output))
 # -> there are 16 loops (and reset 15 times)
 # -> 35184372088832 <= A <= 246290604621824 (see below)
 
+# Let's work backwards, because it seems A is just constantly shifted by 3 bits, used to calculate C and is the first input to B
+
+# 2,4,1,5,7,5,1,6,0,3,4,1,5,5,3,0
+
+# output = 2 (= 010 is lowest 3 digits of B)
+# 010 = ((A % 8 XOR 101) XOR 110) XOR (A >> (A % 8 XOR 101))
+
+# A = 0000000000 -> 101 XOR 110 = 011 XOR 000 = 011 = 3
+# A = 0000000001 -> 100 XOR 110 = 010 XOR 000 = 010 = 2
+
+# LHS = (A % 8 XOR 101) XOR 110 = (A % 8 XOR 011)
+# RHS = A >> (A % 8 XOR 101)
+# -> LHS = 000 -> RHS = 010
+# -> LHS = 001 -> RHS = 011
+# -> LHS = 010 -> RHS = 000
+# -> LHS = 011 -> RHS = 001
+# -> LHS = 100 -> RHS = 110
+# -> LHS = 101 -> RHS = 111
+# -> LHS = 110 -> RHS = 100
+# -> LHS = 111 -> RHS = 101
+
 # before we jump out A is between 1 and 7, so bounds are:
 a_upper = 7
 a_lower = 1
@@ -189,3 +252,36 @@ for i in range(15):
 
 print(a_lower)
 print(a_upper)
+
+# My first thought was to check values 0 through 7 for the next num in program
+# then bitshift 3 and go to the next number. But the operation `C = A >> B`
+# can make a specific output number dependent on the bits to the left of it, 
+# so we will recurse over all values in the 0 through 7 range that produces the
+# right value before moving on.
+def find_a_recursive(i, a, program):
+    print("A is now " + str(a))
+    val = program[len(program)-1-i]
+    print("Trying to find " + str(val))
+    found = False
+    for next_num in range(8):
+        print("Adding " + str(next_num))
+        output = execute_program(program, [a + next_num, 0, 0])
+        print(output)
+        if output[0] == val:
+            # we found the next number, move on
+            found = True
+            next_a = a + next_num
+            if len(output) == len(program):
+                return next_a
+            
+            next_a = next_a << 3
+            result = find_a_recursive(i + 1, next_a, program)
+            if result > 0:
+                return result
+            else:
+                found = False
+    if not found:
+        return -1
+
+a = find_a_recursive(0, 0, program)
+print("Found A = " + str(a))

@@ -29,19 +29,18 @@ def find_clusters(vertices, edges, nodes):
 
 def find_largest_cluster_brute_force(vertices, edges, nodes):
     clusters = set([frozenset([v]) for v in vertices])
-    current_length = len(clusters)
     
     while True:
-        print("Doing a pass across clusters to see if they are interconnected. Count: " + str(current_length))
-        for c1, c2 in itertools.combinations(clusters, 2):
-            if are_interconnected(c1, c2):
-                clusters.add(frozenset(c1.union(c2)))
+        print("Doing a pass across clusters to see if they are interconnected. Count: " + str(len(clusters)))
+        next_clusters = set()
+        for c in clusters:
+            for v in vertices:
+                if are_interconnected(c, set([v])):
+                    next_clusters.add(frozenset(c.union(set([v]))))
         
-        if len(clusters) == current_length:
-            break
-        current_length = len(clusters)
-    
-    return max(clusters, key=len)
+        if len(next_clusters) == 0:
+            return max(clusters, key=len)
+        clusters = next_clusters
        
 def are_interconnected(c1, c2):
     for v1 in c1:
@@ -100,4 +99,7 @@ num_clusters = find_clusters(vertices, edges, nodes)
 print(num_clusters)
 
 largest_cluster = find_largest_cluster(vertices, edges, nodes)
+print(",".join(sorted(largest_cluster)))
+
+largest_cluster = find_largest_cluster_brute_force(vertices, edges, nodes)
 print(",".join(sorted(largest_cluster)))

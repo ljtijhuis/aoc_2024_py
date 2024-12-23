@@ -27,7 +27,53 @@ def find_clusters(vertices, edges, nodes):
                 clusters.add(tuple(sorted((v, v1, v2))))
     return len(clusters)
 
+def find_largest_cluster_brute_force(vertices, edges, nodes):
+    clusters = set([frozenset([v]) for v in vertices])
+    current_length = len(clusters)
+    
+    while True:
+        print("Doing a pass across clusters to see if they are interconnected. Count: " + str(current_length))
+        for c1, c2 in itertools.combinations(clusters, 2):
+            if are_interconnected(c1, c2):
+                clusters.add(frozenset(c1.union(c2)))
+        
+        if len(clusters) == current_length:
+            break
+        current_length = len(clusters)
+    
+    return max(clusters, key=len)
+       
+def are_interconnected(c1, c2):
+    for v1 in c1:
+        for v2 in c2:
+            if not (v1, v2) in edges:
+                return False
+    return True
 
+def find_largest_cluster(vertices, edges, nodes):
+    in_clique = set()
+    to_consider = set(vertices)
+    ignore = set()
+    cliques_found = set()
+    bron_kerbosch(in_clique, to_consider, ignore, nodes, cliques_found)
+    return max(cliques_found, key=len)
+
+def bron_kerbosch(in_clique, to_consider, ignore, nodes, cliques_found):
+    if len(to_consider) == 0 and len(ignore) == 0:
+        cliques_found.add(frozenset(in_clique))
+    else:
+        while len(to_consider) > 0:
+            v = to_consider.pop()
+            neighbors = set([v2.vertice for v2 in nodes[v].edges])
+            bron_kerbosch(
+                in_clique.union({v}), # we add v to the clique found
+                to_consider.intersection(neighbors), # the intersection of vertices left and that v is connected to
+                ignore.intersection(neighbors), # ignore the ignore list intersected with neighbors
+                nodes,
+                cliques_found
+            )
+            ignore.add(v) # ignore v in the next iterations
+    
 def read_file(f):
     with open(f) as opened_file:
         return opened_file.read()
@@ -52,3 +98,6 @@ vertices, edges, nodes = parse_input(text)
 
 num_clusters = find_clusters(vertices, edges, nodes)
 print(num_clusters)
+
+largest_cluster = find_largest_cluster(vertices, edges, nodes)
+print(",".join(sorted(largest_cluster)))

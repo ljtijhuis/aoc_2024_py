@@ -31,6 +31,36 @@ def next_secret(secret):
     # number.
     return prune(mix(result, result * 2048))
 
+def find_best_sequence(secrets):
+    
+    sequence_counts = {}
+
+    for secret in secrets:
+        secret_counts = {}
+        generated_secrets = generate_secrets(secret)
+        numbers = to_numbers(generated_secrets)
+
+        for one, two, three, four, five in zip(numbers, numbers[1:], numbers[2:], numbers[3:], numbers[4:]):
+
+            deltas = (two-one, three-two, four-three, five-four)
+            if deltas not in secret_counts:
+                secret_counts[deltas] = five
+        
+        for deltas, value in secret_counts.items():
+            sequence_counts[deltas] = sequence_counts.get(deltas, 0) + value
+
+    return max(sequence_counts.values())
+
+def generate_secrets(secret):
+    result = [secret]
+    for i in range(2000):
+        secret = next_secret(secret)
+        result.append(secret)
+    return result
+
+def to_numbers(generated_secrets):
+    return [s % 10 for s in generated_secrets]
+
 def read_file(f):
     with open(f) as opened_file:
         return opened_file.read()
@@ -41,6 +71,12 @@ def parse_input(text):
 
 text = read_file('day22.txt')
 secrets = parse_input(text)
+# secrets = [
+#     1,
+#     2,
+#     3,
+#     2024
+# ]
 
 # secret = 123
 # for i in range(10):
@@ -53,5 +89,7 @@ for secret in secrets:
         secret = next_secret(secret)
     
     sum += secret
-    print(secret)
 print(sum)
+
+bananas = find_best_sequence(secrets)
+print(bananas)
